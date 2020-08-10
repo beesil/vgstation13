@@ -30,18 +30,19 @@
 			icon_state ="blackglass"
 			name = "international drink of mystery"
 			desc = "The identity of this drink has been concealed for its protection."
-			viewcontents = 0 
+			viewcontents = 0
 		else
 			var/datum/reagent/R = reagents.get_master_reagent()
+			R.steve(src)
 
 			if(R.light_color)
 				light_color = R.light_color
-			
+
 			if(R.flammable)
 				if(!lit)
 					flammable = 1
 
-			name = R.glass_name ? R.glass_name : "glass of " + R.name //uses glass of [reagent name] if a glass name isn't defined
+			name = R.glass_name ? R.glass_name : "glass of " + lowertext(R.name) //uses glass of [reagent name] if a glass name isn't defined
 			desc = R.glass_desc ? R.glass_desc : R.description //uses the description if a glass description isn't defined
 			isGlass = R.glass_isGlass
 
@@ -64,28 +65,6 @@
 	if(iscarbon(loc))
 		var/mob/living/carbon/M = loc
 		M.update_inv_hands()
-
-		/*
-			if(PINTPOINTER)
-				var/obj/item/weapon/reagent_containers/food/drinks/drinkingglass/pintpointer/P = new (get_turf(src))
-				if(reagents.last_ckey_transferred_to_this)
-					for(var/client/C in clients)
-						if(C.ckey == reagents.last_ckey_transferred_to_this)
-							var/mob/M = C.mob
-							P.creator = M
-				reagents.trans_to(P, reagents.total_volume)
-				spawn(1)
-					qdel(src)
-			if(SCIENTISTS_SERENDIPITY)
-				if(reagents.get_reagent_amount(SCIENTISTS_SERENDIPITY)<10) //You need at least 10u to get the tech bonus
-					icon_state = "scientists_surprise"
-					name = "\improper Scientist's Surprise"
-					desc = "There is as yet insufficient data for a meaningful answer."
-				else
-					icon_state = "scientists_serendipity"
-					name = "\improper Scientist's Serendipity"
-					desc = "Knock back a cold glass of R&D."
-					origin_tech = "materials=7;engineering=3;plasmatech=2;powerstorage=4;bluespace=6;combat=3;magnets=6;programming=3"*/
 
 /obj/item/weapon/reagent_containers/food/drinks/drinkingglass/examine(mob/user)
 	..()
@@ -144,7 +123,7 @@
 
 		var/datum/reagent/R = reagents.get_master_reagent()
 
-		name = R.mug_name ? R.mug_name : "\improper [R.name]"
+		name = R.mug_name ? R.mug_name : "mug of " + lowertext(R.name)
 		desc = R.mug_desc ? R.mug_desc : R.description
 		isGlass = R.glass_isGlass
 
