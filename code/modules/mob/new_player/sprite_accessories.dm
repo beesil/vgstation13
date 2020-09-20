@@ -76,10 +76,6 @@
 	name = "Shoulder-length Hair"
 	icon_state = "hair_b"
 
-/datum/sprite_accessory/hair/longalt
-	name = "Shoulder-length Hair Alt"
-	icon_state = "hair_longfringe"
-
 /*/datum/sprite_accessory/hair/longish
 	name = "Longer Hair"
 	icon_state = "hair_b2"*/
@@ -667,6 +663,10 @@
 /datum/sprite_accessory/facial_hair/unshaven
 	name = "Unshaven"
 	icon_state = "facial_unshaven"
+
+/datum/sprite_accessory/facial_hair/fiveoclock
+	name = "Five O'Clock Shadow"
+	icon_state = "facial_fiveoclock"
 
 // Before Goon gets all hot and bothered for "stealing":
 // A. It's property of SEGA in the first place
