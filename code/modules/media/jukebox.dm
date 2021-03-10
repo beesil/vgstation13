@@ -829,6 +829,7 @@ var/global/list/loopModeNames=list(
 		"depresso" ="Depresso",
 		"electronica" = "Electronica",
 		"filk" = "Filk",
+		"funk" = "Funk",
 		"folk" = "Folk",
 		"medbay" = "Medbay",
 		"metal" = "Heavy Metal",
@@ -860,6 +861,7 @@ var/global/list/loopModeNames=list(
 		"depresso" ="Depresso",
 		"electronica" = "Electronica",
 		"filk" = "Filk",
+		"funk" = "Funk",
 		"folk" = "Folk",
 		"medbay" = "Medbay",
 		"metal" = "Heavy Metal",
@@ -1039,6 +1041,10 @@ var/global/list/loopModeNames=list(
 	name = "nanovinyl - filk"
 	unformatted = "filk"
 	formatted = "Filk"
+/obj/item/weapon/vinyl/funk
+	name = "nanovinyl - funk"
+	unformatted = "funk"
+	formatted = "Funk"
 /obj/item/weapon/vinyl/folk
 	name = "nanovinyl - folk"
 	unformatted = "folk"
