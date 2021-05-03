@@ -39,6 +39,7 @@ var/global/list/juice_items = list (
 		/obj/item/stack/sheet/mineral/clown   = list(BANANA = 20),
 		/obj/item/stack/sheet/mineral/silver  = list(SILVER = 20),
 		/obj/item/stack/sheet/mineral/gold    = list(GOLD = 20),
+		/obj/item/stack/sheet/mineral/diamond = list(DIAMONDDUST = 20),
 		/obj/item/stack/sheet/mineral/phazon  = list(PHAZON = 1),
 		/obj/item/weapon/grown/nettle         = list(FORMIC_ACID = 0),
 		/obj/item/weapon/grown/deathnettle    = list(PHENOL = 0),
@@ -113,7 +114,7 @@ var/global/list/juice_items = list (
 		return -1
 	return ..()
 
-/obj/machinery/reagentgrinder/crowbarDestroy(mob/user, obj/item/weapon/crowbar/I)
+/obj/machinery/reagentgrinder/crowbarDestroy(mob/user, obj/item/tool/crowbar/I)
 	if(beaker)
 		to_chat(user, "You can't do that while \the [src] has a beaker loaded!")
 		return FALSE

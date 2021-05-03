@@ -21,8 +21,14 @@ var/stacking_limit = 90
 	//Threat logging vars
 	var/threat_level = 0//the "threat cap", threat shouldn't normally go above this and is used in ruleset calculations
 	var/starting_threat = 0 //threat_level's initially rolled value. Threat_level isn't changed by many things.
-	var/threat = 0//set at the beginning of the round. Spent by the mode to "purchase" rules.
+	var/threat = 0//set at the beginning of the round. Spent by the mode to "purchase"  roundstart rules.
 	var/list/threat_log = list() //Running information about the threat. Can store text or datum entries.
+
+	// Midround threat
+	var/midround_threat_level = 0
+	var/midround_starting_threat = 0
+	var/midround_threat = 0
+	var/list/midround_threat_log = list()
 
 	var/list/roundstart_rules = list()
 	var/list/latejoin_rules = list()
@@ -34,6 +40,7 @@ var/stacking_limit = 90
 	var/list/current_rules = list()
 	var/list/executed_rules = list()
 	var/list/last_round_executed_rules = list()
+	var/list/rules_text = list()
 
 	var/list/living_players = list()
 	var/list/living_antags = list()
@@ -54,6 +61,7 @@ var/stacking_limit = 90
 	var/curve_width_of_round = 1.8
 
 	var/peaceful_percentage = 50
+	var/highlander_rulesets_favoured = 0
 
 	// -- Special tweaks --
 	var/no_stacking = 1
@@ -64,8 +72,8 @@ var/stacking_limit = 90
 /datum/gamemode/dynamic/AdminPanelEntry()
 	var/dat = list()
 	dat += "Dynamic Mode <a href='?_src_=vars;Vars=\ref[src]'>\[VV\]</A><BR>"
-	dat += "Threat Level: <b>[threat_level]</b><br/>"
-	dat += "Threat to Spend: <b>[threat]</b> <a href='?_src_=holder;adjustthreat=1'>\[Adjust\]</A> <a href='?_src_=holder;threatlog=1'>\[View Log\]</a><br/>"
+	dat += "Threat Level: <b>[threat_level]</b>, in-round injection threat level: <b>[midround_threat_level]</b><br/>"
+	dat += "Threat to Spend: <b>[midround_threat]</b> <a href='?_src_=holder;adjustthreat=1'>\[Adjust\]</A> <a href='?_src_=holder;threatlog=1'>\[View Log\]</a><br/>"
 	dat += "<br/>"
 	dat += "Parameters: centre = [curve_centre_of_round] ; width = [curve_width_of_round].<br/>"
 	dat += "<i>On average, <b>[peaceful_percentage]</b>% of the rounds are more peaceful.</i><br/>"
@@ -123,7 +131,7 @@ var/stacking_limit = 90
 	if(!admin.check_rights(R_ADMIN) && (ticker.current_state != GAME_STATE_FINISHED))
 		return
 
-	var/out = "<TITLE>Threat Log</TITLE><B><font size='3'>Threat Log</font></B><br><B>Starting Threat:</B> [starting_threat]<BR>"
+	var/out = "<TITLE>Threat Log</TITLE><B><font size='3'>Threat Log</font></B><br><B>Starting Threat:</B> [starting_threat], <b>midround</b>: [midround_starting_threat]<BR>"
 
 	for(var/entry in threat_log)
 		if(istext(entry))
@@ -132,15 +140,15 @@ var/stacking_limit = 90
 			var/datum/role/catbeast/C = entry
 			out += "Catbeast threat regenerated/threat_level inflated: [C.threat_generated]/[C.threat_level_inflated]<BR>"
 
-	out += "<B>Remaining threat/threat_level:</B> [threat]/[threat_level]"
+	out += "<B>Remaining threat/threat_level:</B> [threat]/[threat_level]<br/>"
+	out += "<B>Remaining midround threat/threat_level:</B> [midround_threat]/[midround_threat_level]"
 
 	usr << browse(out, "window=threatlog;size=700x500")
 
 /datum/gamemode/dynamic/GetScoreboard()
 
-	dat += "<h2>Dynamic Mode - Threat Level = <font color='red'>[threat_level]%</font></h2><a href='?src=\ref[src];threatlog=1'>\[View Log\]</a>"
+	dat += "<h2>Dynamic Mode - Roundstart Threat = <font color='red'>[threat_level]%</font>, Midround Threat = <font color='red'>[midround_threat_level]%</font></h2><a href='?src=\ref[src];threatlog=1'>\[View Log\]</a>"
 
-	var/rules = list()
 	if (executed_rules.len > 0)
 		for (var/datum/dynamic_ruleset/DR in executed_rules)
 			var/ruletype = ""
@@ -151,15 +159,18 @@ var/stacking_limit = 90
 			if (istype (DR, /datum/dynamic_ruleset/midround))
 				ruletype = "midround"
 			dat += "([ruletype]) - <b>[DR.name]</b>[DR.calledBy ? " (called by [DR.calledBy])" : ""]<br>"
-			rules += "[ruletype] - **[DR.name]** [DR.calledBy ? " (called by [DR.calledBy])" : ""]"
+			rules_text += "[ruletype] - **[DR.name]** [DR.calledBy ? " (called by [DR.calledBy])" : ""]"
 	else
 		dat += "(extended)"
+		rules_text += "None"
 	dat += "<HR>"
 	. = ..()
-	send2mainirc("A round of [src.name] has ended - [living_players.len] survivors, [dead_players.len] ghosts.")
-	send2maindiscord("A round of **[name]** has ended - **[living_players.len]** survivors, **[dead_players.len]** ghosts.")
-	send2mainirc("Dynamic mode Threat Level: [starting_threat][(starting_threat!=threat_level)?" ([threat_level])":""], rulesets: [jointext(rules, ", ")].")
-	send2maindiscord("Dynamic mode Threat Level: **[starting_threat][(starting_threat!=threat_level)?" ([threat_level])":""]**, rulesets: [jointext(rules, ", ")]")
+
+/datum/gamemode/dynamic/send2servers()
+	send2mainirc("A round of [name] has ended - [living_players.len] survivors, [dead_players.len] ghosts. Final crew score: [score["crewscore"]]. ([score["rating"]])")
+	send2maindiscord("A round of **[name]** has ended - **[living_players.len]** survivors, **[dead_players.len]** ghosts. Final crew score: **[score["crewscore"]]**. ([score["rating"]])")
+	send2mainirc("Dynamic mode Roundstart Threat: [starting_threat][(starting_threat!=threat_level)?" ([threat_level])":""], Midround Threat: [midround_starting_threat][(midround_starting_threat!=midround_threat_level)?" ([midround_threat_level])":""], rulesets: [jointext(rules_text, ", ")].")
+	send2maindiscord("Dynamic mode Roundstart Threat: **[starting_threat][(starting_threat!=threat_level)?" ([threat_level])":""]**, Midround Threat: **[midround_starting_threat][(midround_starting_threat!=midround_threat_level)?" ([midround_threat_level])":""]**, rulesets: [jointext(rules_text, ", ")]")
 
 /datum/gamemode/dynamic/can_start()
 	distribution_mode = dynamic_chosen_mode
@@ -187,8 +198,8 @@ var/stacking_limit = 90
 	var/midround_injection_cooldown_middle = 0.5*(MIDROUND_DELAY_MAX + MIDROUND_DELAY_MIN)
 	midround_injection_cooldown = round(clamp(exp_distribution(midround_injection_cooldown_middle), MIDROUND_DELAY_MIN, MIDROUND_DELAY_MAX))
 
-	message_admins("Dynamic Mode initialized with a Threat Level of... <font size='8'>[threat_level]</font>!")
-	log_admin("Dynamic Mode initialized with a Threat Level of... [threat_level]!")
+	message_admins("Dynamic Mode initialized with a Threat Level of... <font size='8'>[threat_level]</font> and <font size='8'>[midround_threat_level]</font> for midround!")
+	log_admin("Dynamic Mode initialized with a Threat Level of... [threat_level] and [midround_threat_level]</font> for midround!")
 
 	message_admins("Parameters were: centre = [curve_centre_of_round], width = [curve_width_of_round].")
 	log_admin("Parameters were: centre = [curve_centre_of_round], width = [curve_width_of_round].")
@@ -334,15 +345,7 @@ var/stacking_limit = 90
 	if	(extra_rulesets_amount && prob(50))
 		message_admins("DYNAMIC MODE: Rather than extra rulesets, we'll try to draft spicier ones.")
 		log_admin("DYNAMIC MODE: Rather than extra rulesets, we'll try to draft spicier ones.")
-		for (var/datum/dynamic_ruleset/rule in roundstart_rules)
-			if (rule.flags & HIGHLANDER_RULESET)
-				rule.weight += extra_rulesets_amount
-		for (var/datum/dynamic_ruleset/rule in midround_rules)
-			if (rule.flags & HIGHLANDER_RULESET)
-				rule.weight += extra_rulesets_amount
-		for (var/datum/dynamic_ruleset/rule in latejoin_rules)
-			if (rule.flags & HIGHLANDER_RULESET)
-				rule.weight += extra_rulesets_amount
+		highlander_rulesets_favoured = TRUE
 		extra_rulesets_amount = 0
 
 	var/i = 0
@@ -362,77 +365,99 @@ var/stacking_limit = 90
 	else
 		message_admins("DYNAMIC MODE: [i] rulesets qualify for the current pop and threat level, including [drafted_rules.len] with eligible candidates.")
 		log_admin("DYNAMIC MODE: [i] rulesets qualify for the current pop and threat level, including [drafted_rules.len] with eligible candidates.")
-	if (drafted_rules.len > 0 && picking_roundstart_rule(drafted_rules))
-		if (extra_rulesets_amount > 0)//we've got enough population and threat for a second rulestart rule
-			for (var/datum/dynamic_ruleset/roundstart/rule in drafted_rules)
-				if (rule.cost > threat)
-					drafted_rules -= rule
-			message_admins("DYNAMIC MODE: The current pop and threat level allow for a second round start ruleset, there remains [candidates.len] eligible candidates and [drafted_rules.len] eligible rulesets")
-			log_admin("DYNAMIC MODE: The current pop and threat level allow for a second round start ruleset, there remains [candidates.len] eligible candidates and [drafted_rules.len] eligible rulesets")
-			if (drafted_rules.len > 0 && picking_roundstart_rule(drafted_rules))
-				if (extra_rulesets_amount > 1)//we've got enough population and threat for a third rulestart rule
-					for (var/datum/dynamic_ruleset/roundstart/rule in drafted_rules)
-						if (rule.cost > threat)
-							drafted_rules -= rule
-					message_admins("DYNAMIC MODE: The current pop and threat level allow for a third round start ruleset, there remains [candidates.len] eligible candidates and [drafted_rules.len] eligible rulesets")
-					log_admin("DYNAMIC MODE: The current pop and threat level allow for a third round start ruleset, there remains [candidates.len] eligible candidates and [drafted_rules.len] eligible rulesets")
-					if (!drafted_rules.len > 0 || !picking_roundstart_rule(drafted_rules))
-						message_admins("DYNAMIC MODE: The mode failed to pick a third ruleset.")
-						log_admin("DYNAMIC MODE: The mode failed to pick a third ruleset.")
+
+	var/list/datum/dynamic_ruleset/roundstart/candidate_rules = list()
+
+	for (var/j = 1 to (1 + extra_rulesets_amount))
+		// 1. Scrapping all the rules with cost above remaining threat level
+		for (var/datum/dynamic_ruleset/roundstart/rule in drafted_rules)
+			if (rule.cost > threat)
+				drafted_rules -= rule
+
+		// 2. No rules left? Abort.
+		if (drafted_rules.len <= 0)
+			break
+
+		// 3. Picking up the CHOSEN ONE.
+		var/datum/dynamic_ruleset/chosen_one = picking_roundstart_rule(drafted_rules, candidate_rules)
+
+		// 4. Adding to the LIST.
+		if (chosen_one)
+			message_admins("DYNAMIC MODE: Picking a [istype(chosen_one, /datum/dynamic_ruleset/roundstart/delayed/) ? " delayed " : ""] ruleset...<font size='3'>[chosen_one.name]</font>!")
+			log_admin("DYNAMIC MODE: Picking a [istype(chosen_one, /datum/dynamic_ruleset/roundstart/delayed/) ? " delayed " : ""] ruleset...<font size='3'>[chosen_one.name]</font>!")
+			candidate_rules += chosen_one
+			drafted_rules -= chosen_one
+			drafted_rules = trimming_remaining_rules(chosen_one, drafted_rules)
+
+	// Is THE LIST non-empty ?
+	if (candidate_rules.len > 0)
+		var/datum/dynamic_ruleset/roundstart/extended/stendo = (locate(/datum/dynamic_ruleset/roundstart/extended) in candidate_rules)
+		// eggstanded
+		if (stendo)
+			if (executing_roundstart_rule(stendo))
+				return 1
 			else
-				message_admins("DYNAMIC MODE: The mode failed to pick a second ruleset.")
-				log_admin("DYNAMIC MODE: The mode failed to pick a second ruleset.")
+				candidate_rules =- stendo
+
+		for (var/datum/dynamic_ruleset/roundstart/DR in candidate_rules)
+			executing_roundstart_rule(DR)
 	else
 		message_admins("DYNAMIC MODE: The mode failed to pick a first ruleset. The round will begin without any roles assigned.")
 		log_admin("DYNAMIC MODE: The mode failed to pick a first ruleset. The round will begin without any roles assigned.")
 		return 0
-	return 1
 
-/datum/gamemode/dynamic/proc/picking_roundstart_rule(var/list/drafted_rules = list())
-	var/datum/dynamic_ruleset/roundstart/starting_rule
-
-	while(!starting_rule && drafted_rules.len > 0)
+// -- PICKING a rule, which means checking if you can do it.
+// drafted_rules : the eligible rules for this round, after the threat cost of other rules has been taken into account and they have enough candidates
+// returns : the chosen dynamic ruleset.
+/datum/gamemode/dynamic/proc/picking_roundstart_rule(var/list/drafted_rules = list(), var/list/candidate_rules = list())
+	var/datum/dynamic_ruleset/my_rule = null
+	while(!my_rule && drafted_rules.len > 0)
 		message_admins("DYNAMIC MODE: Drafted rules: [json_encode(drafted_rules)]")
 		log_admin("DYNAMIC MODE: Drafted rules: [json_encode(drafted_rules)]")
-		starting_rule = pickweight(drafted_rules)
+		my_rule = pickweight(drafted_rules)
 		if (threat < stacking_limit && no_stacking)
-			for (var/datum/dynamic_ruleset/roundstart/DR in executed_rules)
-				if ((DR.flags & HIGHLANDER_RULESET) && (starting_rule.flags & HIGHLANDER_RULESET))
-					message_admins("DYNAMIC MODE: Ruleset [starting_rule.name] refused as we already have a round-ending ruleset.")
-					log_admin("DYNAMIC MODE: Ruleset [starting_rule.name] refused as we already have a round-ending ruleset.")
-					drafted_rules -= starting_rule
-					starting_rule = null
+			for (var/datum/dynamic_ruleset/roundstart/DR in candidate_rules + executed_rules)
+				if ((DR.flags & HIGHLANDER_RULESET) && (my_rule.flags & HIGHLANDER_RULESET))
+					message_admins("DYNAMIC MODE: Ruleset [my_rule.name] refused as we already have a round-ending ruleset.")
+					log_admin("DYNAMIC MODE: Ruleset [my_rule.name] refused as we already have a round-ending ruleset.")
+					drafted_rules -= my_rule
+					my_rule = null
+	return my_rule
 
-	if (starting_rule)
-		message_admins("DYNAMIC MODE: Picking a [istype(starting_rule, /datum/dynamic_ruleset/roundstart/delayed/) ? " delayed " : ""] ruleset...<font size='3'>[starting_rule.name]</font>!")
-		log_admin("DYNAMIC MODE: Picking a [istype(starting_rule, /datum/dynamic_ruleset/roundstart/delayed/) ? " delayed " : ""] ruleset...<font size='3'>[starting_rule.name]</font>!")
+// -- A rule has been picked. We have to clean its assigned candidates from other rules to avoid someone getting multiple antags. We also check if that new rule has enough remaining candidates.
+// choosen_one : the rule who has just been picked.
+// drafted_rules : the rules currently drafted.
+// returns : the new drafted rules.
+/datum/gamemode/dynamic/proc/trimming_remaining_rules(var/datum/dynamic_ruleset/choosen_one, var/list/drafted_rules)
+	for(var/mob/M in choosen_one.assigned)
+		candidates -= M
+		for (var/datum/dynamic_ruleset/roundstart/rule in roundstart_rules)
+			rule.candidates -= M//removing the assigned players from the candidates for the other rules
+			if (!rule.ready())
+				drafted_rules -= rule//and removing rules that are no longer eligible
+	return drafted_rules
 
-		roundstart_rules -= starting_rule
-		drafted_rules -= starting_rule
+// -- Executing a rule, which means spawning the traitor, removing the threat cost, etc.
+// the_rule: the rule being executed
+// returns: 0 or 1 depending on success. (failure meaning something runtimed mid-code.)
+/datum/gamemode/dynamic/proc/executing_roundstart_rule(var/datum/dynamic_ruleset/the_rule)
+	if (istype(the_rule, /datum/dynamic_ruleset/roundstart/delayed/))
+		message_admins("DYNAMIC MODE: Delayed ruleset, with a delay of [the_rule:delay/10] seconds.")
+		log_admin("DYNAMIC MODE: Delayed ruleset, with a delay of [the_rule:delay/10] seconds.")
+		spend_threat(the_rule.cost)
+		threat_log += "[worldtime2text()]: Roundstart [the_rule.name] spent [the_rule.cost]"
+		return pick_delay(the_rule)
 
-		if (istype(starting_rule, /datum/dynamic_ruleset/roundstart/delayed/))
-			message_admins("DYNAMIC MODE: Delayed ruleset, with a delay of [starting_rule:delay/10] seconds.")
-			log_admin("DYNAMIC MODE: Delayed ruleset, with a delay of [starting_rule:delay/10] seconds.")
-			spend_threat(starting_rule.cost)
-			return pick_delay(starting_rule)
-
-		spend_threat(starting_rule.cost)
-		threat_log += "[worldtime2text()]: Roundstart [starting_rule.name] spent [starting_rule.cost]"
-		if (starting_rule.execute())//this should never fail since ready() returned 1
-			executed_rules += starting_rule
-			if (starting_rule.persistent)
-				current_rules += starting_rule
-			for(var/mob/M in starting_rule.assigned)
-				candidates -= M
-				for (var/datum/dynamic_ruleset/roundstart/rule in roundstart_rules)
-					rule.candidates -= M//removing the assigned players from the candidates for the other rules
-					if (!rule.ready())
-						drafted_rules -= rule//and removing rules that are no longer eligible
-			return 1
-		else
-			message_admins("DYNAMIC MODE: ....except not because whomever coded that ruleset forgot some cases in ready() apparently! execute() returned 0.")
-			log_admin("DYNAMIC MODE: ....except not because whomever coded that ruleset forgot some cases in ready() apparently! execute() returned 0.")
-	return 0
+	spend_threat(the_rule.cost)
+	threat_log += "[worldtime2text()]: Roundstart [the_rule.name] spent [the_rule.cost]"
+	if (the_rule.execute())//this should never fail since ready() returned 1
+		executed_rules += the_rule
+		if (the_rule.persistent)
+			current_rules += the_rule
+	else
+		message_admins("DYNAMIC MODE: ....except not because whomever coded that ruleset forgot some cases in ready() apparently! execute() returned 0.")
+		log_admin("DYNAMIC MODE: ....except not because whomever coded that ruleset forgot some cases in ready() apparently! execute() returned 0.")
+		return 0
 
 /datum/gamemode/dynamic/proc/pick_delay(var/datum/dynamic_ruleset/roundstart/delayed/rule)
 	spawn()
@@ -454,8 +479,8 @@ var/stacking_limit = 90
 	if (latejoin_rule)
 		if (!latejoin_rule.repeatable)
 			latejoin_rules = remove_rule(latejoin_rules,latejoin_rule.type)
-		spend_threat(latejoin_rule.cost)
-		threat_log += "[worldtime2text()]: Latejoin [latejoin_rule.name] spent [latejoin_rule.cost]"
+		spend_midround_threat(latejoin_rule.cost)
+		threat_log += "[worldtime2text()]: Latejoin [latejoin_rule.name] spent [latejoin_rule.cost] (midround budget)"
 		dynamic_stats.measure_threat(threat)
 		if (latejoin_rule.execute())//this should never fail since ready() returned 1
 			var/mob/M = pick(latejoin_rule.assigned)
@@ -473,8 +498,8 @@ var/stacking_limit = 90
 	if (midround_rule)
 		if (!midround_rule.repeatable)
 			midround_rules = remove_rule(midround_rules,midround_rule.type)
-		spend_threat(midround_rule.cost)
-		threat_log += "[worldtime2text()]: Midround [midround_rule.name] spent [midround_rule.cost]"
+		spend_midround_threat(midround_rule.cost)
+		threat_log += "[worldtime2text()]: Midround [midround_rule.name] spent [midround_rule.cost] (midround budget)"
 		dynamic_stats.measure_threat(threat)
 		if (midround_rule.execute())//this should never fail since ready() returned 1
 			message_admins("DYNAMIC MODE: Injecting some threats...<font size='3'>[midround_rule.name]</font>!")
@@ -562,13 +587,13 @@ var/stacking_limit = 90
 			current_players[CURRENT_DEAD_PLAYERS] = dead_players.Copy()
 			current_players[CURRENT_OBSERVERS] = list_observers.Copy()
 			for (var/datum/dynamic_ruleset/midround/rule in midround_rules)
-				if (rule.acceptable(living_players.len,threat_level) && threat >= rule.cost)
+				if (rule.acceptable(living_players.len,midround_threat_level) && midround_threat >= rule.cost)
 					// Classic secret : only autotraitor/minor roles
 					if (classic_secret && !((rule.flags & TRAITOR_RULESET) || (rule.flags & MINOR_RULESET)))
 						message_admins("[rule] was refused because we're on classic secret mode.")
 						continue
 					// No stacking : only one round-enter, unless > stacking_limit threat.
-					if (threat < stacking_limit && no_stacking)
+					if (midround_threat < stacking_limit && no_stacking)
 						var/skip_ruleset = 0
 						for (var/datum/dynamic_ruleset/DR in executed_rules)
 							if ((DR.flags & HIGHLANDER_RULESET) && (rule.flags & HIGHLANDER_RULESET))
@@ -677,13 +702,13 @@ var/stacking_limit = 90
 	else if (!latejoin_injection_cooldown && injection_attempt())
 		var/list/drafted_rules = list()
 		for (var/datum/dynamic_ruleset/latejoin/rule in latejoin_rules)
-			if (rule.acceptable(living_players.len,threat_level) && threat >= rule.cost)
+			if (rule.acceptable(living_players.len,midround_threat_level) && midround_threat >= rule.cost)
 				// Classic secret : only autotraitor/minor roles
 				if (classic_secret && !((rule.flags & TRAITOR_RULESET) || (rule.flags & MINOR_RULESET)))
 					message_admins("[rule] was refused because we're on classic secret mode.")
 					continue
 				// No stacking : only one round-enter, unless > stacking_limit threat.
-				if (threat < stacking_limit && no_stacking)
+				if (midround_threat < stacking_limit && no_stacking)
 					var/skip_ruleset = 0
 					for (var/datum/dynamic_ruleset/DR in executed_rules)
 						if ((DR.flags & HIGHLANDER_RULESET) && (rule.flags & HIGHLANDER_RULESET))
@@ -718,6 +743,18 @@ var/stacking_limit = 90
 //Expend threat, but do not fall below 0.
 /datum/gamemode/dynamic/proc/spend_threat(var/cost)
 	threat = max(threat-cost,0)
+
+// Same as above, but for midround
+/datum/gamemode/dynamic/proc/refund_midround_threat(var/regain)
+	threat = min(midround_threat_level,midround_threat+regain)
+
+/datum/gamemode/dynamic/proc/create_midround_threat(var/gain)
+	midround_threat = min(100, midround_threat+gain)
+	if(midround_threat>midround_threat_level)
+		midround_threat_level = midround_threat
+
+/datum/gamemode/dynamic/proc/spend_midround_threat(var/cost)
+	midround_threat = max(midround_threat-cost,0)
 
 // -- For the purpose of testing & simulation.
 /datum/gamemode/dynamic/proc/simulate_roundstart(var/mob/user = usr)

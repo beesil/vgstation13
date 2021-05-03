@@ -10,8 +10,9 @@
 		if(O.is_organic() && O.is_existing())
 			total_brute	+= O.brute_dam
 			total_burn	+= O.burn_dam
+	var/prevhealth = health
 	health = maxHealth - getOxyLoss() - getToxLoss() - getCloneLoss() - total_burn - total_brute
-
+	critlog(health,prevhealth)
 	if((maxHealth - total_burn) < config.health_threshold_dead)
 		death(FALSE)
 		ChangeToHusk()
@@ -491,11 +492,12 @@ This function restores all organs.
 /mob/living/carbon/human/apply_radiation(var/rads, var/application = RAD_EXTERNAL)
 	if(species.flags & RAD_IMMUNE)
 		return
-
 	if(application == RAD_EXTERNAL)
 		lazy_invoke_event(/lazy_event/on_irradiate, list("user" = src, "rads" = rads))
-
 	if(reagents)
 		if(reagents.has_reagent(LITHOTORCRAZINE))
-			rads = rads/2
+			rads /= 2
+	if(species.rad_mod)
+		rads *= species.rad_mod
 	return ..()
+

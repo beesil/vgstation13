@@ -90,7 +90,7 @@
 		if(applicants.len <= 0)
 			if(i == candidate_checks)
 				//We have found no candidates so far and we are out of applicants.
-				mode.refund_threat(cost)
+				mode.refund_midround_threat(cost)
 				mode.threat_log += "[worldtime2text()]: Rule [name] refunded [cost] (all applications invalid)"
 				mode.executed_rules -= src
 			break
@@ -167,7 +167,7 @@
 							"Cyborg", "Merchant", "Chief Engineer", "Chief Medical Officer", "Research Director")
 	restricted_from_jobs = list("AI","Mobile MMI")
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 10
 	requirements = list(50,40,30,20,10,10,10,10,10,10)
 	repeatable = TRUE
@@ -178,7 +178,7 @@
 	var/player_count = mode.living_players.len
 	var/antag_count = mode.living_antags.len
 	var/max_traitors = round(player_count / 10) + 1
-	if ((antag_count < max_traitors) && prob(mode.threat_level))//adding traitors if the antag population is getting low
+	if ((antag_count < max_traitors) && prob(mode.midround_threat_level))//adding traitors if the antag population is getting low
 		return ..()
 	else
 		return 0
@@ -231,7 +231,7 @@
 	exclusive_to_jobs = list("AI")
 	required_pop = list(25,25,25,20,20,20,15,15,15,15)
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 35
 	requirements = list(90,80,70,60,50,40,40,30,30,20)
 	high_population_requirement = 65
@@ -281,7 +281,7 @@
 	enemy_jobs = list("Security Officer","Detective","Head of Security", "Captain")
 	required_pop = list(20,20,15,15,15,15,15,10,10,0)
 	required_candidates = 1
-	weight = 5
+	weight = BASE_RULESET_WEIGHT/2
 	cost = 20
 	requirements = list(90,90,70,40,30,20,10,10,10,10)
 	high_population_requirement = 50
@@ -323,9 +323,9 @@
 	required_pop = list(25, 25, 25, 25, 25, 20, 15, 15, 10, 10)
 	required_candidates = 5 // Placeholder, see op. cap
 	max_candidates = 5
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 35
-	requirements = list(90, 90, 90, 80, 60, 40, 30, 20, 10, 10)
+	requirements = list(90, 90, 80, 40, 40, 40, 30, 20, 20, 10)
 	high_population_requirement = 60
 	var/operative_cap = list(2, 2, 3, 3, 4, 5, 5, 5, 5, 5)
 	logo = "nuke-logo"
@@ -366,7 +366,7 @@
 	enemy_jobs = list("AI", "Cyborg", "Security Officer", "Station Engineer","Chief Engineer", "Roboticist","Head of Security", "Captain")
 	required_pop = list(25,20,20,15,15,15,10,10,10,10)
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	weekday_rule_boost = list("Tue")
 	cost = 30
 	requirements = list(90,90,90,80,60,40,30,20,10,10)
@@ -403,9 +403,9 @@
 	enemy_jobs = list("AI", "Cyborg", "Security Officer", "Warden","Detective","Head of Security", "Captain")
 	required_pop = list(25,25,25,25,25,20,15,15,10,10)
 	required_candidates = 3
-	weight = 10
-	cost = 45
-	requirements = list(101,101,90,60,45,45,45,45,45,45)
+	weight = BASE_RULESET_WEIGHT
+	cost = 30
+	requirements = list(90, 90, 90, 90, 40, 40, 30, 20, 10, 10)
 	high_population_requirement = 50
 	my_fac = /datum/faction/revolution
 	logo = "rev-logo"
@@ -441,7 +441,7 @@
 	enemy_jobs = list("Security Officer","Detective", "Warden", "Head of Security", "Captain")
 	required_pop = list(15,15,15,15,15,10,10,10,5,5)
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 20
 	requirements = list(90,90,60,20,10,10,10,10,10,10)
 	high_population_requirement = 20
@@ -452,7 +452,7 @@
 	var/player_count = mode.living_players.len
 	var/antag_count = mode.living_antags.len
 	var/max_traitors = round(player_count / 10) + 1
-	if ((antag_count < max_traitors) && prob(mode.threat_level))
+	if ((antag_count < max_traitors) && prob(mode.midround_threat_level))
 		return ..()
 	else
 		return 0
@@ -477,7 +477,7 @@
 	enemy_jobs = list("Librarian","Detective", "Chaplain", "Internal Affairs Agent")
 	required_pop = list(0,0,10,10,15,15,20,20,20,25)
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	timeslot_rule_boost = list(SLEEPTIME)
 	cost = 5
 	requirements = list(5,5,15,15,25,25,55,55,55,75)
@@ -516,7 +516,7 @@
 	enemy_jobs = list()
 	required_pop = list(0,0,0,0,0,0,0,0,0,0)
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 10
 	requirements = list(40,20,10,10,10,10,10,10,10,10) // So that's not possible to roll it naturally
 	high_population_requirement = 10
@@ -544,7 +544,7 @@
 	name = "Loose Catbeast"
 	role_category = /datum/role/catbeast
 	required_candidates = 1
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 0
 	requirements = list(0,0,0,0,0,0,0,0,0,0)
 	high_population_requirement = 0
@@ -552,8 +552,8 @@
 	flags = MINOR_RULESET
 
 /datum/dynamic_ruleset/midround/from_ghosts/catbeast/acceptable(var/population=0,var/threat=0)
-	if(mode.threat>50) //We're threatening enough!
-		message_admins("Rejected catbeast ruleset, [mode.threat] threat was over 50.")
+	if(mode.midround_threat>50) //We're threatening enough!
+		message_admins("Rejected catbeast ruleset, [mode.midround_threat] threat was over 50.")
 		return FALSE
 	if(!..())
 		message_admins("Rejected catbeast ruleset. Not enough threat somehow??")
@@ -573,9 +573,9 @@
 	enemy_jobs = list("AI", "Cyborg", "Security Officer", "Warden","Detective","Head of Security", "Captain")
 	required_pop = list(20,20,20,15,15,15,15,15,10,10)
 	required_candidates = 5
-	weight = 10
-	cost = 30
-	requirements = list(50,50,50,40,40,30,30,20,10,10)
+	weight = BASE_RULESET_WEIGHT
+	cost = 25
+	requirements = list(50,50,50,30,30,30,30,20,10,10)
 	high_population_requirement = 35
 	var/vox_cap = list(2,2,3,3,4,5,5,5,5,5)
 	logo = "vox-logo"
@@ -616,7 +616,7 @@
 	required_pop = list(15,15,15,15,15,15,15,15,15,15)
 	required_candidates = 1
 	max_candidates = 5
-	weight = 10
+	weight = BASE_RULESET_WEIGHT
 	cost = 25
 	requirements = list(90,70,50,40,30,20,10,10,10,10)
 	high_population_requirement = 40
@@ -662,7 +662,7 @@
 		if(temp_vent.loc.z == map.zMainStation && !temp_vent.welded && temp_vent.network)
 			if(temp_vent.network.normal_members.len > 50)	//Stops Aliens getting stuck in small networks. See: Security, Virology
 				vents += temp_vent
-	
+
 
 	if (vents.len == 0)
 		message_admins("A suitable vent couldn't be found for alien larva. That's bad.")
@@ -701,9 +701,9 @@
 	required_enemies = list(1,1,1,1,1,1,1,1,1,1)
 	required_pop = list(0,0,10,10,15,15,20,20,20,25)
 	required_candidates = 1
-	weight = 1
+	weight = 3
 	cost = 0
-	requirements = list(5,5,15,15,20,20,20,20,40,70) 
+	requirements = list(5,5,15,15,20,20,20,20,40,70)
 	high_population_requirement = 10
 	flags = MINOR_RULESET
 	makeBody = FALSE
@@ -748,16 +748,16 @@
 			sleep(150)
 			if(!can_move_shuttle())
 				continue
-		
+
 			sleep(50)	//everyone is off, wait 5 more seconds so people don't get ZAS'd out the airlock
-			if(!can_move_shuttle())	
+			if(!can_move_shuttle())
 				continue
 			if(!transport_shuttle.move_to_dock(centcomdock))
 				message_admins("The transport shuttle couldn't return to centcomm for some reason.")
 				return
 
 /datum/dynamic_ruleset/midround/from_ghosts/prisoner/proc/can_move_shuttle()
-	var/contents = get_contents_in_object(transport_shuttle.linked_area)	
+	var/contents = get_contents_in_object(transport_shuttle.linked_area)
 	if (locate(/mob/living) in contents)
 		return FALSE
 	if (locate(/obj/item/weapon/disk/nuclear) in contents)

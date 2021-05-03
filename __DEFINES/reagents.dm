@@ -72,6 +72,7 @@
 #define GOLD 			"gold"
 #define SILVER 			"silver"
 #define URANIUM 			"uranium"
+#define DIAMONDDUST		"diamond"
 #define PHAZON 			"phazon"
 #define ALUMINUM 			"aluminum"
 #define SILICON 			"silicon"
@@ -475,10 +476,12 @@
 #define SODIUMSILICATE	"sodiumsilicate"
 #define COLORFUL_REAGENT "colorful_reagent"
 #define AMINOMICIN		"aminomicin"
+#define AMINOMICIAN		"aminomician"
 #define AMINOCYPRINIDOL	"aminocyprinidol"
 #define TOMATO_SOUP		"tomato_soup"
 #define LUMINOL			"luminol"
 #define CAFFEINE		"caffeine"
+#define MIDAZOLINE		"midazoline"
 
 // How many units of reagent are consumed per tick, by default.
 #define REAGENTS_METABOLISM 0.2

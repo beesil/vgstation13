@@ -57,7 +57,6 @@
 
 /datum/dynamic_ruleset/latejoin//Can be drafted when a player joins the server
 
-
 /datum/dynamic_ruleset/proc/acceptable(var/population=0,var/threat_level=0)
 	//by default, a rule is acceptable if it satisfies the threat level/population requirements.
 	//If your rule has extra checks, such as counting security officers, do that in ready() instead
@@ -139,6 +138,8 @@
 				break
 	if(halve_result)
 		result /= 2
+	if (mode.highlander_rulesets_favoured && (flags & HIGHLANDER_RULESET))
+		result *= ADDITIONAL_RULESET_WEIGHT
 	message_admins("[name] had [result] weight (-[initial(weight) - result]).")
 	return result
 
@@ -181,7 +182,7 @@
 		if(!applicants || applicants.len <= 0)
 			log_admin("DYNAMIC MODE: [name] received no applications.")
 			message_admins("DYNAMIC MODE: [name] received no applications.")
-			mode.refund_threat(cost)
+			mode.refund_midround_threat(cost)
 			mode.threat_log += "[worldtime2text()]: Rule [name] refunded [cost] (no applications)"
 			mode.executed_rules -= src
 			return

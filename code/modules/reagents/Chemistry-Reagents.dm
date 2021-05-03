@@ -215,6 +215,10 @@
 /datum/reagent/proc/OnTransfer()
 	return
 
+//Called when reagentcontainer A transfers into reagentcontainer B (this /datum/reagent belongs to B, i.e. we are the catchers here)
+/datum/reagent/proc/post_transfer(var/datum/reagents/donor)
+	return
+
 /datum/reagent/send_to_past(var/duration)
 	var/static/list/resettable_vars = list(
 		"being_sent_to_past",
@@ -694,7 +698,7 @@
 		T.dry(TURF_WET_LUBE) //Absorbs water or lube
 
 /datum/reagent/anti_toxin
-	name = "Anti-Toxin (Dylovene)"
+	name = "Dylovene"
 	id = ANTI_TOXIN
 	description = "Dylovene is a broad-spectrum antitoxin."
 	reagent_state = REAGENT_STATE_LIQUID
@@ -2079,7 +2083,25 @@
 	if(volume >= 3)
 		if(!(locate(/obj/effect/decal/cleanable/greenglow) in T))
 			new /obj/effect/decal/cleanable/greenglow(T)
+			
+/datum/reagent/diamond
+	name = "Diamond dust"
+	id = DIAMONDDUST
+	description = "An allotrope of carbon, one of the hardest minerals known."
+	reagent_state = REAGENT_STATE_SOLID
+	color = "c4d4e0" //196 212 224
+	density = 3.51
+	specheatcap = 6.57
+	
+/datum/reagent/diamond/on_mob_life(var/mob/living/M)
 
+	if(..())
+		return 1
+	
+	M.adjustBruteLoss(5 * REM) //Not a good idea to eat crystal powder
+	if(prob(30))
+		M.audible_scream()
+	
 /datum/reagent/phazon
 	name = "Phazon salt"
 	id = PHAZON
@@ -2491,7 +2513,7 @@
 			C.adjustToxLoss(REM) //4 toxic damage per application, doubled for some reason
 		if(isinsectoid(C) || istype(C, /mob/living/carbon/monkey/roach)) //Insecticide being poisonous to bugmen, who'd've thunk
 			M.adjustToxLoss(10 * REM)
-		
+
 /datum/reagent/toxin/insecticide/on_plant_life(obj/machinery/portable_atmospherics/hydroponics/T)
 	..()
 
@@ -3109,6 +3131,19 @@
 
 	if(prob(5) && M.stat == CONSCIOUS)
 		M.emote(pick("twitch","blink_r","shiver"))
+
+/datum/reagent/hyperzine/on_overdose(var/mob/living/M)
+	if(ishuman(M) && M.get_heart()) // Got a heart?
+		var/mob/living/carbon/human/H = M
+		var/datum/organ/internal/heart/damagedheart = H.get_heart()
+		if(H.species.name != "Diona" && damagedheart) // Not on dionae
+			if(prob(5) && M.stat == CONSCIOUS)
+				to_chat(H, "<span class='danger'>You feel a sharp pain in your chest!</span>")
+			damagedheart.damage += 1
+		else
+			M.adjustFireLoss(1) // Burn damage for dionae
+	else
+		M.adjustToxLoss(1) // Toxins for everyone else
 
 /datum/reagent/hypozine //syndie hyperzine
 	name = "Hypozine"
@@ -6367,7 +6402,7 @@
 		glass_name = "\improper Scientist's Surprise"
 		glass_desc = "There is as yet insufficient data for a meaningful answer."
 		D.origin_tech = ""
-		
+
 	else if(volume < 50)
 		glass_icon_state = "scientists_serendipity"
 		glass_name = "\improper Scientist's Serendipity"
@@ -6379,7 +6414,7 @@
 		glass_name = "\improper Scientist's Sapience"
 		glass_desc = "Why research what has already been catalogued?"
 		D.origin_tech = "materials=10;engineering=5;plasmatech=4;powerstorage=5;bluespace=10;biotech=5;combat=6;magnets=6;programming=5;illegal=1;nanotrasen=1;syndicate=2" //Maxes everything but Illegal and Anomaly
-				
+
 /datum/reagent/ethanol/beepskyclassic
 	name = "Beepsky Classic"
 	id = BEEPSKY_CLASSIC
@@ -6503,7 +6538,7 @@
 /datum/reagent/ethanol/drink/gravsingulo/on_mob_life(var/mob/living/M)
 	if(..())
 		return 1
-	
+
 	switch(data)
 		if(0 to 65)
 			if(prob(5))
@@ -8869,6 +8904,16 @@ var/global/list/tonio_doesnt_remove=list("tonio", "blood")
 	specheatcap = 208.4
 	custom_metabolism = 0.01 //oh shit what are you doin
 
+/datum/reagent/aminomician
+	name = "Aminomician"
+	id = AMINOMICIAN
+	description = "An experimental and unstable chemical, said to be able to create companionship. Potential reaction detected if mixed with nutriment."
+	reagent_state = REAGENT_STATE_LIQUID
+	color = "#634848" //rgb: 99, 72, 72
+	density = 13.49 //our ingredients are pretty dense
+	specheatcap = 208.4
+	custom_metabolism = 0.01 //oh shit what are you doin
+
 /datum/reagent/aminocyprinidol
 	name = "Aminocyprinidol"
 	id = AMINOCYPRINIDOL
@@ -9005,6 +9050,26 @@ var/global/list/tonio_doesnt_remove=list("tonio", "blood")
 	else
 		M.hallucination += 5	//50% mindbreaker
 
+/datum/reagent/self_replicating
+	var/whitelisted_ids = list()
+
+/datum/reagent/self_replicating/post_transfer(var/datum/reagents/donor)
+	..()
+	holder.convert_all_to_id(id, whitelisted_ids)
+
+/datum/reagent/self_replicating/on_introduced(var/data)
+	..()
+	holder.convert_all_to_id(id, whitelisted_ids)
+
+/datum/reagent/self_replicating/midazoline
+	name = "Midazoline"
+	id = MIDAZOLINE
+	description = "Chrysopoeia, the artificial production of gold, was one of the defining ambitions of ancient alchemy. Turns out, all it took was a little plasma. Converts all other reagents into Midazoline, except for Mercury, which will convert Midazoline into itself."
+	reagent_state = REAGENT_STATE_SOLID
+	color = "#F7C430" //rgb: 247, 196, 48
+	specheatcap = 0.129
+	density = 19.3
+	whitelisted_ids = list(MERCURY)
 
 //////////////////////
 //					//
